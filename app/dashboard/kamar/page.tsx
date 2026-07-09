@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/lib/AuthContext";
-import { db } from "@/lib/firebase";
+// FIX 3: Menambahkan import React secara utuh di awal
+import React, { useState, useEffect } from "react"; 
+// FIX 1: Mengubah import menjadi relative path agar folder 'lib' langsung terbaca
+import { useAuth } from "../../../lib/AuthContext";
+import { db } from "../../../lib/firebase";
 import { collection, addDoc, getDocs, query, serverTimestamp } from "firebase/store";
 
 interface Kamar {
@@ -27,9 +29,12 @@ export default function MandiriKamarPage() {
       const q = query(collection(db, "kamars"));
       const querySnapshot = await getDocs(q);
       const data: Kamar[] = [];
-      querySnapshot.forEach((doc) => {
+      
+      // FIX 2: Menambahkan tipe ': any' pada parameter doc agar lolos strict mode
+      querySnapshot.forEach((doc: any) => {
         data.push({ id: doc.id, ...doc.data() } as Kamar);
       });
+      
       setKamars(data);
     } catch (error) {
       console.error("Gagal mengambil data kamar:", error);
@@ -57,7 +62,7 @@ export default function MandiriKamarPage() {
       });
       setNomorKamar("");
       setHargaBulanan("");
-      fetchKamars(); // Refresh data setelah berhasil menyimpan
+      fetchKamars(); 
     } catch (error) {
       console.error("Gagal menyimpan kamar:", error);
     } finally {
@@ -65,7 +70,6 @@ export default function MandiriKamarPage() {
     }
   };
 
-  // Hitung statistik ringkas untuk mempercantik dashboard
   const totalKamar = kamars.length;
   const tersedia = kamars.filter((k) => k.status === "tersedia").length;
   const terisi = kamars.filter((k) => k.status === "terisi").length;
@@ -149,7 +153,6 @@ export default function MandiriKamarPage() {
             </h2>
 
             {loadingFetch ? (
-              // Beautiful Skeleton Loader ketika sedang memuat data
               <div className="space-y-3 pt-4">
                 <div className="h-10 bg-slate-100 rounded-xl animate-pulse"></div>
                 <div className="h-14 bg-slate-50 rounded-xl animate-pulse"></div>
@@ -160,7 +163,6 @@ export default function MandiriKamarPage() {
                 <p className="text-sm text-slate-400 font-medium">Belum ada data unit kamar yang terdaftar.</p>
               </div>
             ) : (
-              // Premium Table Layout
               <div className="overflow-x-auto rounded-xl border border-slate-100">
                 <table className="w-full text-left border-collapse">
                   <thead>
