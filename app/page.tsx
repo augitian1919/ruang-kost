@@ -19,6 +19,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
+
       <section className="relative px-6 py-24 md:py-32 flex flex-col items-center text-center overflow-hidden">
         {/* Latar Belakang Gradien Halus */}
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50 via-white to-white"></div>
@@ -38,14 +39,23 @@ export default function Home() {
           Pilihan cerdas untuk hunian sementara Anda. Nikmati fasilitas lengkap, lokasi yang sangat strategis, dan lingkungan aman untuk mendukung produktivitasmu setiap hari.
         </p>
         
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-          <button className="bg-blue-600 text-white px-8 py-3.5 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-200 transform hover:-translate-y-0.5">
-            Lihat Pilihan Kamar
-          </button>
-          <button className="bg-white text-slate-700 border border-slate-200 px-8 py-3.5 rounded-full font-semibold hover:bg-slate-50 transition-all">
-            Hubungi Pemilik
-          </button>
-        </div>
+import Link from "next/link"; // Pastikan import ini sudah ada di paling atas
+
+// ... (di dalam bagian return)
+
+<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+  {/* UBAH DARI <button> MENJADI <Link> */}
+  <Link 
+    href="/kamar" 
+    className="bg-blue-600 text-white px-8 py-3.5 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-200 transform hover:-translate-y-0.5 text-center"
+  >
+    Lihat Pilihan Kamar
+  </Link>
+  
+  <button className="bg-white text-slate-700 border border-slate-200 px-8 py-3.5 rounded-full font-semibold hover:bg-slate-50 transition-all">
+    Hubungi Pemilik
+  </button>
+</div>
       </section>
 
       {/* Keunggulan Section */}
