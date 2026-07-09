@@ -39,10 +39,6 @@ export default function Home() {
           Pilihan cerdas untuk hunian sementara Anda. Nikmati fasilitas lengkap, lokasi yang sangat strategis, dan lingkungan aman untuk mendukung produktivitasmu setiap hari.
         </p>
         
-import Link from "next/link"; // Pastikan import ini sudah ada di paling atas
-
-// ... (di dalam bagian return)
-
 <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
   {/* UBAH DARI <button> MENJADI <Link> */}
   <Link 
