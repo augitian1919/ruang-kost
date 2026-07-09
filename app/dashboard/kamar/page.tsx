@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 // FIX 1: Mengubah import menjadi relative path agar folder 'lib' langsung terbaca
 import { useAuth } from "../../../lib/AuthContext";
 import { db } from "../../../lib/firebase";
-import { collection, addDoc, getDocs, query, serverTimestamp } from "firebase/store";
+import { collection, addDoc, getDocs, query, serverTimestamp } from "firebase/firestore";
 
 interface Kamar {
   id: string;
