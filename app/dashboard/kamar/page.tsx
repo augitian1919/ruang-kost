@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import React, { useState, useEffect } from "react"; 
+import { db } from "../../../lib/firebase"; // Sesuaikan path ini jika perlu
+import { collection, addDoc, getDocs, query, serverTimestamp } from "firebase/firestore";
 
 interface Kamar {
   id: string;
@@ -12,54 +12,121 @@ interface Kamar {
   status: "tersedia" | "terisi";
 }
 
-export default function DaftarKamarPublik() {
+export default function MandiriKamarPage() {
   const [kamars, setKamars] = useState<Kamar[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [nomorKamar, setNomorKamar] = useState("");
+  const [hargaBulanan, setHargaBulanan] = useState("");
+  const [fasilitas, setFasilitas] = useState("");
+  const [loadingFetch, setLoadingFetch] = useState(true);
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
+
+  const fetchKamars = async () => {
+    try {
+      setLoadingFetch(true);
+      const q = query(collection(db, "kamars"));
+      const querySnapshot = await getDocs(q);
+      const data: Kamar[] = [];
+      querySnapshot.forEach((doc: any) => {
+        data.push({ id: doc.id, ...doc.data() } as Kamar);
+      });
+      setKamars(data);
+    } catch (error) {
+      console.error("Gagal mengambil data:", error);
+    } finally {
+      setLoadingFetch(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchKamar = async () => {
-      // Kita hanya mengambil yang statusnya 'tersedia' untuk ditampilkan ke publik
-      const q = query(collection(db, "kamars"), where("status", "==", "tersedia"));
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Kamar));
-      setKamars(data);
-      setLoading(false);
-    };
-    fetchKamar();
+    fetchKamars();
   }, []);
 
-  return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-12">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-slate-900 mb-8">Pilihan Kamar Tersedia</h1>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nomorKamar || !hargaBulanan) return;
 
-        {loading ? (
-          <p className="text-slate-500">Memuat daftar kamar...</p>
-        ) : kamars.length === 0 ? (
-          <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
-            <p className="text-slate-600">Mohon maaf, saat ini belum ada kamar yang tersedia.</p>
-          </div>
-        ) : (
-          <div className="grid gap-6">
-            {kamars.map((kamar) => (
-              <div key={kamar.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">Kamar {kamar.nomor_kamar}</h3>
-                  <p className="text-sm text-slate-500 mt-1">Fasilitas: {kamar.fasilitas || "-"}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-blue-600">
-                    Rp {kamar.harga_bulanan.toLocaleString("id-ID")}
-                    <span className="text-sm text-slate-400 font-normal"> / bulan</span>
-                  </div>
-                  <button className="mt-3 bg-slate-900 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-slate-800 transition">
-                    Booking Sekarang
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+    try {
+      setLoadingSubmit(true);
+      await addDoc(collection(db, "kamars"), {
+        nomor_kamar: nomorKamar,
+        harga_bulanan: Number(hargaBulanan),
+        fasilitas: fasilitas,
+        status: "tersedia",
+        createdAt: serverTimestamp(),
+      });
+      setNomorKamar("");
+      setHargaBulanan("");
+      setFasilitas("");
+      fetchKamars(); 
+    } catch (error) {
+      console.error("Gagal menyimpan:", error);
+    } finally {
+      setLoadingSubmit(false);
+    }
+  };
+
+  return (
+    <div className="p-6 bg-slate-50 min-h-screen">
+      <h1 className="text-2xl font-bold mb-6">Manajemen Unit Kamar</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Form Input */}
+        <div className="bg-white p-6 rounded-xl border">
+          <h2 className="font-bold mb-4">Tambah Kamar Baru</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input 
+              className="w-full border p-2 rounded" 
+              placeholder="Nomor Kamar" 
+              value={nomorKamar} 
+              onChange={(e) => setNomorKamar(e.target.value)} 
+            />
+            <input 
+              type="number"
+              className="w-full border p-2 rounded" 
+              placeholder="Harga per bulan" 
+              value={hargaBulanan} 
+              onChange={(e) => setHargaBulanan(e.target.value)} 
+            />
+            <input 
+              className="w-full border p-2 rounded" 
+              placeholder="Fasilitas (ex: AC, WiFi)" 
+              value={fasilitas} 
+              onChange={(e) => setFasilitas(e.target.value)} 
+            />
+            <button 
+              type="submit" 
+              disabled={loadingSubmit}
+              className="w-full bg-blue-600 text-white py-2 rounded"
+            >
+              {loadingSubmit ? "Menyimpan..." : "Simpan Kamar"}
+            </button>
+          </form>
+        </div>
+
+        {/* Tabel Data */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl border">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase text-slate-500">
+                <th className="p-2">Kamar</th>
+                <th className="p-2">Harga & Fasilitas</th>
+                <th className="p-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {kamars.map((kamar) => (
+                <tr key={kamar.id} className="border-b">
+                  <td className="p-2 font-bold">{kamar.nomor_kamar}</td>
+                  <td className="p-2">
+                    <div className="font-bold">Rp {kamar.harga_bulanan.toLocaleString()}</div>
+                    <div className="text-xs text-slate-400">Fasilitas: {kamar.fasilitas || "-"}</div>
+                  </td>
+                  <td className="p-2 text-xs font-bold text-emerald-600">{kamar.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
