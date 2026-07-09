@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, where, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, serverTimestamp } from "firebase/store";
 
-// Definisi tipe data Kamar untuk TypeScript
 interface Kamar {
   id: string;
   nomor_kamar: string;
@@ -20,32 +19,18 @@ export default function MandiriKamarPage() {
   const [hargaBulanan, setHargaBulanan] = useState("");
   const [loadingFetch, setLoadingFetch] = useState(true);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
-  const [suksesMsg, setSuksesMsg] = useState("");
 
-  // 1. FUNGSI READ: Mengambil data kamar dari Firestore milik user yang sedang login
-  const fetchKamar = async () => {
-    if (!user) return;
-    setLoadingFetch(true);
+  // Fungsi fetch data dari Firestore
+  const fetchKamars = async () => {
     try {
-      const q = query(
-        collection(db, "kamar"),
-        where("owner_id", "==", user.uid)
-      );
-      
+      setLoadingFetch(true);
+      const q = query(collection(db, "kamars"));
       const querySnapshot = await getDocs(q);
-      const dataKamar: Kamar[] = [];
-      
+      const data: Kamar[] = [];
       querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        dataKamar.push({
-          id: doc.id,
-          nomor_kamar: data.nomor_kamar,
-          harga_bulanan: data.harga_bulanan,
-          status: data.status,
-        });
+        data.push({ id: doc.id, ...doc.data() } as Kamar);
       });
-      
-      setKamars(dataKamar);
+      setKamars(data);
     } catch (error) {
       console.error("Gagal mengambil data kamar:", error);
     } finally {
@@ -53,134 +38,164 @@ export default function MandiriKamarPage() {
     }
   };
 
-  // Jalankan fetch data saat halaman pertama kali dimuat
   useEffect(() => {
-    fetchKamar();
-  }, [user]);
+    fetchKamars();
+  }, []);
 
-  // 2. FUNGSI CREATE: Menambah data kamar baru ke Firestore
-  const handleTambahKamar = async (e: React.FormEvent) => {
+  // Fungsi tambah data kamar
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !nomorKamar || !hargaBulanan) return;
-
-    setLoadingSubmit(true);
-    setSuksesMsg("");
+    if (!nomorKamar || !hargaBulanan) return;
 
     try {
-      await addDoc(collection(db, "kamar"), {
-        owner_id: user.uid,
+      setLoadingSubmit(true);
+      await addDoc(collection(db, "kamars"), {
         nomor_kamar: nomorKamar,
         harga_bulanan: Number(hargaBulanan),
-        status: "tersedia", // Default kamar baru selalu tersedia
-        created_at: serverTimestamp(),
+        status: "tersedia",
+        createdAt: serverTimestamp(),
       });
-
-      setSuksesMsg("Kamar baru berhasil ditambahkan!");
       setNomorKamar("");
       setHargaBulanan("");
-      
-      // Refresh daftar kamar setelah berhasil menambah data
-      fetchKamar();
+      fetchKamars(); // Refresh data setelah berhasil menyimpan
     } catch (error) {
-      console.error("Gagal menambahkan kamar:", error);
+      console.error("Gagal menyimpan kamar:", error);
     } finally {
       setLoadingSubmit(false);
     }
   };
 
+  // Hitung statistik ringkas untuk mempercantik dashboard
+  const totalKamar = kamars.length;
+  const tersedia = kamars.filter((k) => k.status === "tersedia").length;
+  const terisi = kamars.filter((k) => k.status === "terisi").length;
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Manajemen Kamar</h1>
-        <p className="text-sm text-gray-500">Kelola unit kamar kos yang Anda miliki di sini.</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* FORM TAMBAH KAMAR */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-fit">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Tambah Kamar Baru</h2>
+    <div className="min-h-screen bg-slate-50/50 p-6 md:p-10">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* HEADER SECTION */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-5">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Manajemen Unit Kamar</h1>
+            <p className="text-sm text-slate-500 mt-1">Kelola ketersediaan dan harga sewa kamar kos Anda secara real-time.</p>
+          </div>
           
-          {suksesMsg && (
-            <p className="mb-4 text-sm text-green-600 bg-green-50 p-2 rounded font-medium">
-              ✅ {suksesMsg}
-            </p>
-          )}
-
-          <form onSubmit={handleTambahKamar} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Nomor / Nama Kamar</label>
-              <input
-                type="text"
-                required
-                placeholder="Contoh: A-01, B-05"
-                className="mt-1 w-full rounded border p-2 text-black focus:outline-blue-500"
-                value={nomorKamar}
-                onChange={(e) => setNomorKamar(e.target.value)}
-              />
+          {/* STATS WIDGET */}
+          <div className="flex gap-4 mt-4 md:mt-0">
+            <div className="bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm text-center">
+              <span className="text-xs text-slate-400 font-medium block">Total</span>
+              <span className="text-lg font-bold text-slate-800">{totalKamar}</span>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Harga Per Bulan (Rp)</label>
-              <input
-                type="number"
-                required
-                placeholder="Contoh: 850000"
-                className="mt-1 w-full rounded border p-2 text-black focus:outline-blue-500"
-                value={hargaBulanan}
-                onChange={(e) => setHargaBulanan(e.target.value)}
-              />
+            <div className="bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-xl text-center">
+              <span className="text-xs text-emerald-600 font-medium block">Tersedia</span>
+              <span className="text-lg font-bold text-emerald-700">{tersedia}</span>
             </div>
-            <button
-              type="submit"
-              disabled={loadingSubmit}
-              className="w-full rounded-lg bg-blue-600 p-2.5 font-semibold text-white hover:bg-blue-700 transition disabled:bg-gray-400"
-            >
-              {loadingSubmit ? "Menyimpan..." : "Simpan Kamar"}
-            </button>
-          </form>
+            <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl text-center">
+              <span className="text-xs text-blue-600 font-medium block">Terisi</span>
+              <span className="text-lg font-bold text-blue-700">{terisi}</span>
+            </div>
+          </div>
         </div>
 
-        {/* TABEL DAFTAR KAMAR */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Daftar Semua Kamar</h2>
+        {/* MAIN GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           
-          {loadingFetch ? (
-            <div className="py-8 text-center text-gray-500">Memuat data kamar dari database...</div>
-          ) : kamars.length === 0 ? (
-            <div className="py-8 text-center text-gray-500">Belum ada kamar yang terdaftar.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b bg-gray-50 text-gray-600 text-sm font-semibold">
-                    <th className="p-3">Nomor Kamar</th>
-                    <th className="p-3">Harga Bulanan</th>
-                    <th className="p-3">Status Kelayakan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y text-sm">
-                  {kamars.map((kamar) => (
-                    <tr key={kamar.id} className="hover:bg-gray-50 transition">
-                      <td className="p-3 font-semibold text-gray-800">{kamar.nomor_kamar}</td>
-                      <td className="p-3 text-gray-700">
-                        Rp {kamar.harga_bulanan.toLocaleString("id-ID")}
-                      </td>
-                      <td className="p-3">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                            kamar.status === "tersedia"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {kamar.status === "tersedia" ? "Kosong (Tersedia)" : "Terisi"}
-                        </span>
-                      </td>
+          {/* FORM CARD */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
+              <span className="w-2 h-5 bg-blue-600 rounded-full inline-block"></span>
+              Tambah Kamar Baru
+            </h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Nomor / Nama Kamar</label>
+                <input
+                  type="text"
+                  value={nomorKamar}
+                  onChange={(e) => setNomorKamar(e.target.value)}
+                  placeholder="Contoh: A-01, B-05"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Harga Per Bulan (Rp)</label>
+                <input
+                  type="number"
+                  value={hargaBulanan}
+                  onChange={(e) => setHargaBulanan(e.target.value)}
+                  placeholder="Contoh: 850000"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-slate-800"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loadingSubmit}
+                className="w-full bg-blue-600 text-white font-medium text-sm py-3 px-4 rounded-xl hover:bg-blue-700 active:scale-[0.98] transition disabled:opacity-50 shadow-sm shadow-blue-200 mt-2"
+              >
+                {loadingSubmit ? "Menyimpan..." : "Simpan Unit Kamar"}
+              </button>
+            </form>
+          </div>
+
+          {/* LIST DATA CARD */}
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm min-h-[300px]">
+            <h2 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
+              <span className="w-2 h-5 bg-slate-800 rounded-full inline-block"></span>
+              Daftar Semua Kamar
+            </h2>
+
+            {loadingFetch ? (
+              // Beautiful Skeleton Loader ketika sedang memuat data
+              <div className="space-y-3 pt-4">
+                <div className="h-10 bg-slate-100 rounded-xl animate-pulse"></div>
+                <div className="h-14 bg-slate-50 rounded-xl animate-pulse"></div>
+                <div className="h-14 bg-slate-50 rounded-xl animate-pulse"></div>
+              </div>
+            ) : kamars.length === 0 ? (
+              <div className="text-center py-16 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                <p className="text-sm text-slate-400 font-medium">Belum ada data unit kamar yang terdaftar.</p>
+              </div>
+            ) : (
+              // Premium Table Layout
+              <div className="overflow-x-auto rounded-xl border border-slate-100">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="p-4">Nomor Kamar</th>
+                      <th className="p-4">Harga Sewa</th>
+                      <th className="p-4 text-center">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                    {kamars.map((kamar) => (
+                      <tr key={kamar.id} className="hover:bg-slate-50/50 transition">
+                        <td className="p-4 font-semibold text-slate-900">{kamar.nomor_kamar}</td>
+                        <td className="p-4 font-mono text-slate-600">
+                          Rp {kamar.harga_bulanan.toLocaleString("id-ID")}
+                        </td>
+                        <td className="p-4 text-center">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide ${
+                              kamar.status === "tersedia"
+                                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/10"
+                                : "bg-blue-50 text-blue-700 ring-1 ring-blue-600/10"
+                            }`}
+                          >
+                            {kamar.status === "tersedia" ? "● Tersedia" : "● Terisi"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
     </div>
