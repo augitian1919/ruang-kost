@@ -42,7 +42,7 @@ export default function Home() {
 <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
   {/* UBAH DARI <button> MENJADI <Link> */}
   <Link 
-    href="/kamar" 
+    href="/kamar-tersedia" 
     className="bg-blue-600 text-white px-8 py-3.5 rounded-full font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-200 transform hover:-translate-y-0.5 text-center"
   >
     Lihat Pilihan Kamar
