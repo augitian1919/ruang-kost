@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "../../../lib/firebase"; // Sesuaikan path ini jika perlu
-import { collection, addDoc, getDocs, query, serverTimestamp } from "firebase/firestore";
+// Sesuaikan jumlah titik (../..) agar sesuai dengan lokasi folder lib Anda
+import { db } from "@/lib/firebase"; 
+import { collection, getDocs, query } from "firebase/firestore";
 
 interface Kamar {
   id: string;
@@ -15,72 +16,71 @@ interface Kamar {
 export default function DaftarKamarPublik() {
   const [kamars, setKamars] = useState<Kamar[]>([]);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({ nama: "", wa: "" });
-
-  const fetchKamars = async () => {
-    try {
-      const q = query(collection(db, "kamars"));
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      } as Kamar));
-      setKamars(data);
-    } catch (error) {
-      console.error("Gagal ambil data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    fetchKamars();
+    const fetchKamar = async () => {
+      try {
+        // Kueri diubah: menghapus filter 'where', jadi semua data akan diambil
+        const q = query(collection(db, "kamars"));
+        const snapshot = await getDocs(q);
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as Kamar));
+        setKamars(data);
+      } catch (error) {
+        console.error("Gagal mengambil data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchKamar();
   }, []);
 
-  const handleBooking = async (nomor_kamar: string) => {
-    if (!formData.nama || !formData.wa) return alert("Isi nama dan nomor WA!");
-
-    try {
-      // Perhatikan tanda koma setelah db
-      await addDoc(collection(db, "pendaftar"), {
-        nomor_kamar,
-        nama: formData.nama,
-        wa: formData.wa,
-        tanggal: serverTimestamp(),
-        status: "pending",
-      });
-      alert("Berhasil mendaftar! Pemilik akan segera menghubungi Anda.");
-      setFormData({ nama: "", wa: "" }); // Reset form
-    } catch (error) {
-      console.error("Gagal mendaftar:", error);
-    }
-  };
-
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Daftar Kamar</h1>
-      
-      {/* Contoh Form Input Pendaftar (opsional, sesuaikan kebutuhan UI Anda) */}
-      <div className="mb-6 p-4 border rounded bg-white">
-        <input placeholder="Nama Anda" className="border p-2 mr-2" value={formData.nama} onChange={(e) => setFormData({...formData, nama: e.target.value})} />
-        <input placeholder="No WA" className="border p-2 mr-2" value={formData.wa} onChange={(e) => setFormData({...formData, wa: e.target.value})} />
-      </div>
+    <div className="min-h-screen bg-slate-50 p-6 md:p-12">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-slate-900 mb-8">Daftar Kamar</h1>
 
-      <div className="grid gap-4">
-        {kamars.map((kamar) => (
-          <div key={kamar.id} className="p-4 border rounded bg-white flex justify-between items-center">
-            <div>
-              <p className="font-bold">Kamar {kamar.nomor_kamar}</p>
-              <p className="text-sm text-gray-500">{kamar.fasilitas}</p>
-            </div>
-            <button 
-              onClick={() => handleBooking(kamar.nomor_kamar)}
-              className="bg-blue-600 text-white px-4 py-2 rounded"
-            >
-              Booking
-            </button>
+        {loading ? (
+          <p className="text-slate-500">Memuat data kamar...</p>
+        ) : (
+          <div className="grid gap-6">
+            {kamars.map((kamar) => (
+              <div key={kamar.id} className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-slate-900">Kamar {kamar.nomor_kamar}</h3>
+                    {/* Badge Status */}
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${kamar.status === 'tersedia' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {kamar.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600 mt-1">Fasilitas: {kamar.fasilitas || "-"}</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-xl font-bold text-blue-600">
+                    Rp {kamar.harga_bulanan.toLocaleString("id-ID")}
+                    <span className="text-sm text-slate-400 font-normal"> / bln</span>
+                  </div>
+                  {kamar.status === "tersedia" ? (
+                    <a 
+                      href={`https://wa.me/6281234567890?text=Halo, saya ingin bertanya tentang Kamar ${kamar.nomor_kamar}`}
+                      target="_blank"
+                      className="mt-3 block bg-slate-900 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-slate-800 transition"
+                    >
+                      Booking Sekarang
+                    </a>
+                  ) : (
+                    <button disabled className="mt-3 block bg-slate-200 text-slate-500 px-6 py-2 rounded-lg text-sm font-semibold cursor-not-allowed">
+                      Sudah Terisi
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
