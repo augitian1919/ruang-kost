@@ -45,9 +45,13 @@ export default function Home() {
   Lihat Pilihan Kamar
 </Link>
   
-  <button className="bg-white text-slate-700 border border-slate-200 px-8 py-3.5 rounded-full font-semibold hover:bg-slate-50 transition-all">
-    Hubungi Pemilik
-  </button>
+<Link 
+  href="/kontak" 
+  className="bg-white text-slate-700 border border-slate-200 px-8 py-3.5 rounded-full font-semibold hover:bg-slate-50 transition"
+>
+  Hubungi Pemilik
+</Link>
+
 </div>
       </section>
 
