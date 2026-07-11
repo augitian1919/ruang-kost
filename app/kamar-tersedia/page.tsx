@@ -12,9 +12,9 @@ interface Kamar {
   harga_bulanan: number;
   fasilitas: string;
   status: string;
+  url_gambar?: string;
   ukuran?: string;
   lantai?: number;
-  gambar?: string;
 }
 
 // ============ COMPONENT ============
@@ -188,6 +188,7 @@ export default function KamarTersediaPage() {
             {filteredKamars.map((kamar, index) => {
               const tipe = getTipeKamar(kamar.nomor_kamar);
               const fasilitasList = getFasilitasList(kamar.fasilitas);
+              const hasImage = !!kamar.url_gambar;
 
               return (
                 <div
@@ -195,25 +196,47 @@ export default function KamarTersediaPage() {
                   className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  {/* Card Header / Image Placeholder */}
-                  <div className={`h-40 bg-gradient-to-br ${getTipeColor(tipe)} relative overflow-hidden`}>
-                    <div className="absolute inset-0 bg-black/10"></div>
+                  {/* Card Header dengan Gambar */}
+                  <div className="h-52 relative overflow-hidden">
+                    {hasImage ? (
+                      <img
+                        src={kamar.url_gambar}
+                        alt={kamar.nomor_kamar}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.parentElement?.classList.add('bg-gradient-to-br', ...getTipeColor(tipe).split(' '));
+                        }}
+                      />
+                    ) : (
+                      <div className={`w-full h-full bg-gradient-to-br ${getTipeColor(tipe)} relative flex items-center justify-center`}>
+                        <span className="text-7xl opacity-20">🏠</span>
+                      </div>
+                    )}
+
+                    {/* Overlay gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+
+                    {/* Badge Tipe */}
                     <div className="absolute top-4 left-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getTipeBg(tipe)}`}>
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold border backdrop-blur-md ${getTipeBg(tipe)} shadow-sm`}>
                         {tipe}
                       </span>
                     </div>
+
+                    {/* Badge Tersedia */}
                     <div className="absolute top-4 right-4">
-                      <span className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-bold text-emerald-600 shadow-sm">
-                        🟢 Tersedia
+                      <span className="px-3 py-1.5 bg-emerald-500/90 backdrop-blur-md rounded-full text-xs font-bold text-white shadow-sm flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                        Tersedia
                       </span>
                     </div>
+
+                    {/* Nama Kamar di bawah */}
                     <div className="absolute bottom-4 left-4 right-4">
                       <h3 className="text-white font-bold text-xl drop-shadow-lg">{kamar.nomor_kamar}</h3>
                     </div>
-                    {/* Decorative pattern */}
-                    <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full"></div>
-                    <div className="absolute -top-5 -left-5 w-24 h-24 bg-white/10 rounded-full"></div>
                   </div>
 
                   {/* Card Body */}
@@ -265,7 +288,7 @@ export default function KamarTersediaPage() {
                     </div>
 
                     {/* Action Button */}
-                    <button className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl font-semibold text-sm shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 group-hover:shadow-xl">
+                    <button className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl font-semibold text-sm shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 group-hover:shadow-xl active:scale-[0.98]">
                       <span>📋</span> Lihat Detail & Pesan
                     </button>
                   </div>
