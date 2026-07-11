@@ -117,11 +117,16 @@ export default function HomePage() {
           <h1 className="text-5xl sm:text-7xl font-extrabold text-slate-800 mb-8 leading-[1.1] tracking-tight">
             Temukan Kost{" "}
             <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
-              Nyaman & Aesthetic
+              Nyaman, Harga
+            </span>
+            <br />
+            <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
+              Terjangkau
             </span>
           </h1>
           <p className="text-xl text-slate-500 max-w-2xl mx-auto mb-12 leading-relaxed">
-            Hunian modern dengan fasilitas lengkap, lokasi strategis, dan lingkungan yang aman untuk produktivitasmu.
+            Pilihan cerdas untuk hunian sementara Anda. Nikmati fasilitas lengkap, 
+            lokasi yang sangat strategis, dan lingkungan aman untuk produktivitasmu.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/kamar-tersedia">
@@ -303,14 +308,14 @@ export default function HomePage() {
             <div>
               <h4 className="font-bold text-white mb-4">Kontak</h4>
               <ul className="space-y-3 text-sm text-slate-400">
-                <li className="flex items-center gap-2">📍 Jl. Kasatrian No. 03, Sleman</li>
+                <li className="flex items-center gap-2">📍 Jl. Kasatrian No. 3, Sleman</li>
                 <li className="flex items-center gap-2">📞 0858-0209-0008</li>
                 <li className="flex items-center gap-2">✉️ info@ruangkost.id</li>
               </ul>
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8 text-center text-sm text-slate-500">
-            © 2026 RuangKost. Crafted with 💜
+            © 2026 RuangKost. Dibuat dengan cinta untuk kenyamanan Anda 
           </div>
         </div>
       </footer>
