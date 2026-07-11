@@ -24,6 +24,7 @@ export default function KamarTersediaPage() {
   const [filterTipe, setFilterTipe] = useState<string>("semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"harga-asc" | "harga-desc" | "nama">("harga-asc");
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   // ============ DATA FETCHING ============
   useEffect(() => {
@@ -79,6 +80,18 @@ export default function KamarTersediaPage() {
       case "Deluxe": return "bg-violet-50 text-violet-700 border-violet-200";
       default: return "bg-blue-50 text-blue-700 border-blue-200";
     }
+  };
+
+  const handleImageError = (kamarId: string) => {
+    setImageErrors((prev) => new Set(prev).add(kamarId));
+  };
+
+  const getImageUrl = (url?: string) => {
+    if (!url) return null;
+    if (url.includes("ibb.co") && !url.includes("i.ibb.co")) {
+      return url.replace("ibb.co", "i.ibb.co");
+    }
+    return url;
   };
 
   // ============ FILTER & SORT ============
@@ -185,56 +198,61 @@ export default function KamarTersediaPage() {
         {/* ===== KAMAR GRID ===== */}
         {filteredKamars.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredKamars.map((kamar, index) => {
+            {filteredKamars.map((kamar) => {
               const tipe = getTipeKamar(kamar.nomor_kamar);
               const fasilitasList = getFasilitasList(kamar.fasilitas);
-              const hasImage = !!kamar.url_gambar;
+              const imageUrl = getImageUrl(kamar.url_gambar);
+              const hasImage = !!imageUrl && !imageErrors.has(kamar.id);
 
               return (
                 <div
                   key={kamar.id}
                   className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-                  style={{ animationDelay: `${index * 100}ms` }}
                 >
                   {/* Card Header dengan Gambar */}
-                  <div className="h-52 relative overflow-hidden">
+                  <div className="h-56 relative overflow-hidden">
                     {hasImage ? (
                       <img
-                        src={kamar.url_gambar}
+                        src={imageUrl}
                         alt={kamar.nomor_kamar}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          target.parentElement?.classList.add('bg-gradient-to-br', ...getTipeColor(tipe).split(' '));
-                        }}
+                        onError={() => handleImageError(kamar.id)}
+                        loading="lazy"
                       />
                     ) : (
                       <div className={`w-full h-full bg-gradient-to-br ${getTipeColor(tipe)} relative flex items-center justify-center`}>
-                        <span className="text-7xl opacity-20">🏠</span>
+                        <div className="text-center">
+                          <span className="text-6xl opacity-30">🏠</span>
+                          {!kamar.url_gambar && (
+                            <p className="text-white/60 text-sm mt-2">Belum ada gambar</p>
+                          )}
+                          {kamar.url_gambar && imageErrors.has(kamar.id) && (
+                            <p className="text-white/60 text-sm mt-2">Gagal memuat gambar</p>
+                          )}
+                        </div>
                       </div>
                     )}
 
                     {/* Overlay gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none"></div>
 
                     {/* Badge Tipe */}
-                    <div className="absolute top-4 left-4">
+                    <div className="absolute top-4 left-4 z-10">
                       <span className={`px-3 py-1.5 rounded-full text-xs font-bold border backdrop-blur-md ${getTipeBg(tipe)} shadow-sm`}>
                         {tipe}
                       </span>
                     </div>
 
                     {/* Badge Tersedia */}
-                    <div className="absolute top-4 right-4">
-                      <span className="px-3 py-1.5 bg-emerald-500/90 backdrop-blur-md rounded-full text-xs font-bold text-white shadow-sm flex items-center gap-1">
+                    <div className="absolute top-4 right-4 z-10">
+                      <span className="px-3 py-1.5 bg-emerald-500/90 backdrop-blur-md rounded-full text-xs font-bold text-white shadow-sm flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
                         Tersedia
                       </span>
                     </div>
 
                     {/* Nama Kamar di bawah */}
-                    <div className="absolute bottom-4 left-4 right-4">
+                    <div className="absolute bottom-4 left-4 right-4 z-10">
                       <h3 className="text-white font-bold text-xl drop-shadow-lg">{kamar.nomor_kamar}</h3>
                     </div>
                   </div>
@@ -287,10 +305,12 @@ export default function KamarTersediaPage() {
                       </div>
                     </div>
 
-                    {/* Action Button */}
-                    <button className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl font-semibold text-sm shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 group-hover:shadow-xl active:scale-[0.98]">
-                      <span>📋</span> Lihat Detail & Pesan
-                    </button>
+                    {/* Action Button dengan Link */}
+                    <Link href={`/kamar/${kamar.id}`}>
+                      <button className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl font-semibold text-sm shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 group-hover:shadow-xl active:scale-[0.98]">
+                        <span>📋</span> Lihat Detail & Pesan
+                      </button>
+                    </Link>
                   </div>
                 </div>
               );
