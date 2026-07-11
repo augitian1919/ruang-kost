@@ -135,27 +135,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== STATS BAR ===== */}
-      <section className="py-10 bg-white border-y border-slate-100">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
-            {[
-              { number: "50+", label: "Kamar Tersedia" },
-              { number: "200+", label: "Penghuni Puas" },
-              { number: "4.9", label: "Rating Google" },
-              { number: "24/7", label: "Keamanan" },
-            ].map((stat, idx) => (
-              <div key={idx}>
-                <div className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-                  {stat.number}
-                </div>
-                <div className="text-sm text-slate-500 mt-1">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ===== KEUNTUNGAN ===== */}
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
