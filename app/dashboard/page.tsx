@@ -500,12 +500,11 @@ export default function CustomerDashboardPage() {
         {/* ===== QUICK ACTIONS ===== */}
         <div className="mt-8">
           <h3 className="text-lg font-bold text-slate-800 mb-4">Aksi Cepat</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {[
               { icon: "🏠", label: "Lihat Kamar", href: "/kamar-tersedia" },
               { icon: "💵", label: "Bayar Tagihan", href: "/tagihan" },
               { icon: "📞", label: "Hubungi Admin", href: "/kontak" },
-              { icon: "⚙️", label: "Pengaturan", href: "/pengaturan" },
             ].map((action, idx) => (
               <Link key={idx} href={action.href}>
                 <div className="bg-white rounded-2xl p-5 text-center shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer group">
