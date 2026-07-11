@@ -159,7 +159,7 @@ export default function CustomerDashboardPage() {
             setRiwayatTagihan(riwayat);
 
           } else {
-            // User belum punya sewa -> ambil kamar tersedia
+            // User belum punya sewa → ambil kamar tersedia
             setSewaData(null);
             setKamarSaya(null);
             setTagihanAktif(null);
@@ -502,7 +502,7 @@ export default function CustomerDashboardPage() {
           <h3 className="text-lg font-bold text-slate-800 mb-4">Aksi Cepat</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { icon: "🏠", label: "Lihat Kamar", href: "/kamar" },
+              { icon: "🏠", label: "Lihat Kamar", href: "/kamar-tersedia" },
               { icon: "💵", label: "Bayar Tagihan", href: "/tagihan" },
               { icon: "📞", label: "Hubungi Admin", href: "/kontak" },
               { icon: "⚙️", label: "Pengaturan", href: "/pengaturan" },
