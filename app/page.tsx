@@ -9,12 +9,15 @@ export default function Home() {
           RuangKost<span className="text-orange-500">.</span>
         </h1>
         <div className="flex gap-4 items-center">
+          
+          {/* UBAH BAGIAN HREF DI BAWAH INI */}
           <Link 
-            href="/dashboard/kamar" 
-            className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors"
+            href="/login" 
+            className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors px-4 py-2 hover:bg-blue-50 rounded-md"
           >
-            Masuk Admin
+            Masuk
           </Link>
+
         </div>
       </nav>
 
