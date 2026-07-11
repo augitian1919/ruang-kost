@@ -18,6 +18,7 @@ interface Kamar {
 export default function HomePage() {
   const [kamars, setKamars] = useState<Kamar[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchKamars = async () => {
@@ -44,6 +45,40 @@ export default function HomePage() {
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const getTipeKamar = (nomor: string) => {
+    if (nomor.toLowerCase().includes("vip")) return "VIP";
+    if (nomor.toLowerCase().includes("deluxe")) return "Deluxe";
+    return "Reguler";
+  };
+
+  const getTipeColor = (tipe: string) => {
+    switch (tipe) {
+      case "VIP": return "from-amber-400 to-orange-500";
+      case "Deluxe": return "from-violet-400 to-purple-500";
+      default: return "from-blue-400 to-cyan-500";
+    }
+  };
+
+  const getTipeBadge = (tipe: string) => {
+    switch (tipe) {
+      case "VIP": return "bg-amber-100 text-amber-700 border-amber-200";
+      case "Deluxe": return "bg-violet-100 text-violet-700 border-violet-200";
+      default: return "bg-blue-100 text-blue-700 border-blue-200";
+    }
+  };
+
+  const fixImageUrl = (url?: string) => {
+    if (!url) return "";
+    if (url.includes("ibb.co") && !url.includes("i.ibb.co")) {
+      return url.replace("ibb.co", "i.ibb.co");
+    }
+    return url;
+  };
+
+  const handleImageError = (kamarId: string) => {
+    setImageErrors((prev) => new Set(prev).add(kamarId));
   };
 
   return (
@@ -169,23 +204,46 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {kamars.map((kamar) => (
-                <Link key={kamar.id} href={`/kamar/${kamar.id}`}>
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group">
-                    <div className="h-48 bg-gradient-to-br from-blue-400 to-violet-500 relative flex items-center justify-center">
-                      <span className="text-5xl opacity-30">🏠</span>
-                      <div className="absolute top-3 right-3 px-2 py-1 bg-white/90 rounded-lg text-xs font-bold text-emerald-600">
-                        Tersedia
+              {kamars.map((kamar) => {
+                const tipe = getTipeKamar(kamar.nomor_kamar);
+                const imageUrl = fixImageUrl(kamar.url_gambar);
+                const hasImage = !!imageUrl && !imageErrors.has(kamar.id);
+
+                return (
+                  <Link key={kamar.id} href={`/kamar/${kamar.id}`}>
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group">
+                      <div className="h-52 relative overflow-hidden">
+                        {hasImage ? (
+                          <img
+                            src={imageUrl}
+                            alt={kamar.nomor_kamar}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            onError={() => handleImageError(kamar.id)}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className={`w-full h-full bg-gradient-to-br ${getTipeColor(tipe)} flex items-center justify-center`}>
+                            <span className="text-5xl opacity-30">🏠</span>
+                          </div>
+                        )}
+                        <div className="absolute top-3 right-3 px-2 py-1 bg-emerald-500/90 backdrop-blur-sm rounded-lg text-xs font-bold text-white">
+                          Tersedia
+                        </div>
+                        <div className="absolute top-3 left-3">
+                          <span className={`px-2 py-1 rounded-lg text-xs font-bold border ${getTipeBadge(tipe)}`}>
+                            {tipe}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-5">
+                        <h3 className="font-bold text-slate-800 mb-1">{kamar.nomor_kamar}</h3>
+                        <p className="text-xs text-slate-500 mb-3">{kamar.fasilitas.split(",")[0]}...</p>
+                        <div className="font-extrabold text-blue-600">{formatRupiah(kamar.harga_bulanan)}<span className="text-xs text-slate-400 font-normal">/bulan</span></div>
                       </div>
                     </div>
-                    <div className="p-5">
-                      <h3 className="font-bold text-slate-800 mb-1">{kamar.nomor_kamar}</h3>
-                      <p className="text-xs text-slate-500 mb-3">{kamar.fasilitas.split(",")[0]}...</p>
-                      <div className="font-extrabold text-blue-600">{formatRupiah(kamar.harga_bulanan)}<span className="text-xs text-slate-400 font-normal">/bulan</span></div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
