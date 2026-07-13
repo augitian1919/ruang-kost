@@ -503,7 +503,6 @@ export default function CustomerDashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {[
               { icon: "🏠", label: "Lihat Kamar", href: "/kamar-tersedia" },
-              { icon: "💵", label: "Bayar Tagihan", href: "/tagihan" },
               { icon: "📞", label: "Hubungi Admin", href: "/kontak" },
             ].map((action, idx) => (
               <Link key={idx} href={action.href}>
