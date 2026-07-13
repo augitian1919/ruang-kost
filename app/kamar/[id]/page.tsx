@@ -18,7 +18,6 @@ interface KamarDetail {
   ukuran?: string;
   lantai?: number;
   kapasitas?: number;
-  deposit?: number;
 }
 
 // ============ COMPONENT ============
@@ -130,7 +129,6 @@ export default function DetailKamarPage() {
   const fasilitasList = getFasilitasList(kamar.fasilitas);
   const imageUrl = fixImageUrl(kamar.url_gambar);
   const hasImage = !!imageUrl && !imageError;
-  const deposit = kamar.deposit || kamar.harga_bulanan;
 
   // ============ RENDER: MAIN ============
   return (
@@ -150,7 +148,9 @@ export default function DetailKamarPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-extrabold text-slate-800">{kamar.nomor_kamar}</h1>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800">
+                {kamar.nomor_kamar}
+              </h1>
               <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getTipeBadge(tipe)}`}>
                 {tipe}
               </span>
@@ -195,7 +195,9 @@ export default function DetailKamarPage() {
 
             {/* Deskripsi */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <h2 className="text-lg font-bold text-slate-800 mb-3">📝 Tentang Kamar</h2>
+              <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <span>📝</span> Tentang Kamar
+              </h2>
               <p className="text-slate-600 leading-relaxed">
                 {kamar.deskripsi || `Kamar ${kamar.nomor_kamar} adalah kamar ${tipe.toLowerCase()} yang nyaman dan strategis. 
                 Dilengkapi dengan fasilitas lengkap untuk kenyamanan penghuni. 
@@ -205,7 +207,9 @@ export default function DetailKamarPage() {
 
             {/* Fasilitas */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <h2 className="text-lg font-bold text-slate-800 mb-4">✨ Fasilitas</h2>
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <span>✨</span> Fasilitas Lengkap
+              </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {fasilitasList.map((f, i) => (
                   <div key={i} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -216,14 +220,16 @@ export default function DetailKamarPage() {
               </div>
             </div>
 
-            {/* Info Kamar */}
+            {/* Info Tambahan */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <h2 className="text-lg font-bold text-slate-800 mb-4">📋 Informasi</h2>
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <span>📋</span> Informasi Kamar
+              </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
                   { label: "Tipe", value: tipe, icon: "🏷️" },
                   { label: "Ukuran", value: kamar.ukuran || "3x4 m", icon: "📐" },
-                  { label: "Lantai", value: kamar.lantai ? `${kamar.lantai}` : "1", icon: "🏢" },
+                  { label: "Lantai", value: kamar.lantai ? `Lantai ${kamar.lantai}` : "1", icon: "🏢" },
                   { label: "Kapasitas", value: `${kamar.kapasitas || 1} Orang`, icon: "👤" },
                 ].map((item, idx) => (
                   <div key={idx} className="text-center p-4 bg-slate-50 rounded-xl border border-slate-100">
@@ -234,38 +240,57 @@ export default function DetailKamarPage() {
                 ))}
               </div>
             </div>
+
+            {/* Syarat & Ketentuan */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+              <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <span>📌</span> Syarat & Ketentuan
+              </h2>
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-500 mt-0.5">•</span>
+                  <span>Minimal sewa 3 bulan</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-500 mt-0.5">•</span>
+                  <span>Pembayaran dilakukan setiap awal bulan</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-500 mt-0.5">•</span>
+                  <span>Pemutusan kontrak minimal 1 bulan sebelumnya</span>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          {/* Right Column - Booking */}
+          {/* Right Column - Booking Card (TANPA DEPOSIT) */}
           <div className="lg:col-span-1">
             <div className="sticky top-8 bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
-              <h3 className="font-bold text-lg text-slate-800 mb-4">💳 Ringkasan</h3>
+              <h3 className="font-bold text-lg text-slate-800 mb-4">💳 Ringkasan Biaya</h3>
 
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Sewa/Bulan</span>
-                  <span className="font-semibold">{formatRupiah(kamar.harga_bulanan)}</span>
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-slate-500">Sewa Bulanan</span>
+                  <span className="font-bold text-2xl text-blue-600">{formatRupiah(kamar.harga_bulanan)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Deposit</span>
-                  <span className="font-semibold">{formatRupiah(deposit)}</span>
-                </div>
-                <div className="border-t border-slate-100 pt-3">
-                  <div className="flex justify-between">
-                    <span className="font-bold text-slate-800">Total Pertama</span>
-                    <span className="font-extrabold text-blue-600">{formatRupiah(kamar.harga_bulanan + deposit)}</span>
-                  </div>
-                </div>
+                <div className="text-xs text-slate-400 text-right">/bulan</div>
               </div>
 
-              <button className="w-full py-4 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
-                <span>📋</span> Ajukan Sewa
+              <button className="w-full py-4 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 mb-3 active:scale-[0.98]">
+                <span>📋</span> Ajukan Sewa Sekarang
+              </button>
+
+              <button className="w-full py-3 border-2 border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2">
+                <span>💬</span> Tanya Admin
               </button>
 
               <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                <p className="text-xs text-blue-700 text-center">
-                  Dengan mengajukan sewa, Anda menyetujui syarat dan ketentuan.
-                </p>
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-500 text-lg">💡</span>
+                  <p className="text-xs text-blue-700">
+                    Dengan mengajukan sewa, Anda menyetujui syarat dan ketentuan yang berlaku.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -275,10 +300,10 @@ export default function DetailKamarPage() {
         {/* ===== KAMAR LAINNYA ===== */}
         <div className="mt-12">
           <h2 className="text-xl font-bold text-slate-800 mb-6">🏠 Kamar Lainnya</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               { nama: "A-2 Kamar VIP", harga: 850000, fasilitas: "AC, Kasur, Lemari", tipe: "VIP" },
-              { nama: "B-1 Kamar Reguler", harga: 600000, fasilitas: "Kasur, Lemari, Meja", tipe: "Reguler" },
+              { nama: "B-2 Kamar Reguler", harga: 600000, fasilitas: "Kasur, Lemari, Meja", tipe: "Reguler" },
               { nama: "C-1 Kamar Deluxe", harga: 750000, fasilitas: "AC, Kasur, TV", tipe: "Deluxe" },
             ].map((k, idx) => (
               <Link key={idx} href="/kamar-tersedia">
