@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { useRouter } from "next/navigation"; // Ditambahkan untuk navigasi
+import { onAuthStateChanged, signOut } from "firebase/auth"; // Ditambahkan signOut
 import { 
   doc, 
   getDoc, 
@@ -53,6 +54,7 @@ interface TagihanDataWithSort extends TagihanData {
 
 // ============ COMPONENT ============
 export default function CustomerDashboardPage() {
+  const router = useRouter(); // Inisialisasi router
   const [userName, setUserName] = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
@@ -99,11 +101,24 @@ export default function CustomerDashboardPage() {
     return now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
   };
 
+  // ============ FUNGSI LOG OUT ============
+  const handleLogout = async () => {
+    if (!confirm("Apakah Anda yakin ingin keluar dari akun?")) return;
+
+    try {
+      await signOut(auth);
+      router.push("/login"); // Alihkan ke login setelah logout
+    } catch (error) {
+      console.error("Gagal melakukan log out:", error);
+      alert("Terjadi kesalahan saat keluar sistem.");
+    }
+  };
+
   // ============ DATA FETCHING ============
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        setIsLoading(false);
+        router.push("/login"); // Proteksi: Jika tidak ada user, tendang ke login
         return;
       }
 
@@ -209,7 +224,7 @@ export default function CustomerDashboardPage() {
     });
 
     return () => unsubscribeAuth();
-  }, []);
+  }, [router]);
 
   // ============ RENDER: LOADING ============
   if (isLoading) {
@@ -264,14 +279,28 @@ export default function CustomerDashboardPage() {
                   : "Selamat datang di RuangKost"}
             </p>
           </div>
-          <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-full shadow-sm border border-slate-100">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center text-white font-bold text-sm">
-              {userName.slice(0, 2).toUpperCase()}
+          
+          {/* Kontainer Profil & Tombol Log Out */}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex flex-1 sm:flex-none items-center gap-3 bg-white px-4 py-2.5 rounded-full shadow-sm border border-slate-100">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center text-white font-bold text-sm">
+                {userName.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="hidden sm:block">
+                <div className="font-semibold text-sm text-slate-800">{userName}</div>
+                <div className="text-xs text-slate-500">{userEmail}</div>
+              </div>
             </div>
-            <div className="hidden sm:block">
-              <div className="font-semibold text-sm text-slate-800">{userName}</div>
-              <div className="text-xs text-slate-500">{userEmail}</div>
-            </div>
+
+            {/* Tombol Log Out */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full shadow-sm border border-rose-100 text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-colors text-sm font-bold"
+              title="Keluar dari akun"
+            >
+              <span>🚪</span>
+              <span className="hidden sm:inline">Keluar</span>
+            </button>
           </div>
         </div>
 
