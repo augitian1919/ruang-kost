@@ -9,7 +9,7 @@ import {
   getDocs,
   Timestamp 
 } from "firebase/firestore";
-import { auth, db } from "../../lib/firebase";
+import { auth, db } from "@/lib/firebase"; // Pastikan path ini sesuai
 import Link from "next/link";
 
 // ============ TYPES ============
@@ -29,6 +29,7 @@ export default function TagihanPage() {
   const [userName, setUserName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [tagihanList, setTagihanList] = useState<TagihanData[]>([]);
+  const [statusSewa, setStatusSewa] = useState<string | null>(null); // State baru untuk status sewa
   const [error, setError] = useState<string | null>(null);
 
   // ============ HELPERS ============
@@ -61,15 +62,26 @@ export default function TagihanPage() {
       setUserName(user.displayName || user.email?.split('@')[0] || "Penghuni");
 
       try {
-        // Ambil semua tagihan milik user ini (baik yang lunas maupun belum)
+        // 1. CEK STATUS SEWA TERLEBIH DAHULU
+        const sewaQuery = query(
+          collection(db, "sewa"),
+          where("userId", "==", user.uid)
+        );
+        const sewaSnap = await getDocs(sewaQuery);
+        if (!sewaSnap.empty) {
+          // Ambil status dari dokumen sewa pertama yang ditemukan
+          setStatusSewa(sewaSnap.docs[0].data().status);
+        }
+
+        // 2. AMBIL DATA TAGIHAN
         const tagihanQuery = query(
           collection(db, "tagihan"),
           where("userId", "==", user.uid)
         );
-
-        const snap = await getDocs(tagihanQuery);
+        const tagihanSnap = await getDocs(tagihanQuery);
         const data: TagihanData[] = [];
-        snap.forEach((doc) => {
+        
+        tagihanSnap.forEach((doc) => {
           data.push({ id: doc.id, ...doc.data() } as TagihanData);
         });
 
@@ -144,13 +156,24 @@ export default function TagihanPage() {
           {/* ===== LEFT/MAIN COLUMN: DAFTAR TAGIHAN ===== */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Bagian 1: Perlu Pembayaran */}
+            {/* Bagian 1: Perlu Pembayaran / Status Pending */}
             <div>
               <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <span>🚨</span> Perlu Dibayar
               </h3>
               
-              {tagihanBelumBayar.length > 0 ? (
+              {/* LOGIKA UI BARU DIMULAI DI SINI */}
+              {statusSewa === "menunggu_konfirmasi" ? (
+                // UI Jika Sewa Masih Pending
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-8 text-center border border-amber-200 shadow-sm">
+                  <div className="text-5xl mb-4 animate-bounce">⏳</div>
+                  <h4 className="font-bold text-amber-800 text-lg mb-2">Menunggu Konfirmasi Admin</h4>
+                  <p className="text-sm text-amber-700/80 max-w-md mx-auto leading-relaxed">
+                    Pengajuan sewa kamar Anda sedang diproses oleh admin. Rincian tagihan pembayaran akan otomatis diterbitkan di sini setelah pengajuan Anda disetujui.
+                  </p>
+                </div>
+              ) : tagihanBelumBayar.length > 0 ? (
+                // UI Jika Ada Tagihan
                 <div className="space-y-4">
                   {tagihanBelumBayar.map((item) => (
                     <div key={item.id} className="bg-white rounded-2xl p-6 shadow-sm border border-red-100 relative overflow-hidden group hover:shadow-md transition-all duration-300">
@@ -176,6 +199,7 @@ export default function TagihanPage() {
                   ))}
                 </div>
               ) : (
+                // UI Jika Sudah Aktif & Tidak Ada Tunggakan
                 <div className="bg-white rounded-2xl p-8 text-center border border-emerald-100/60 shadow-sm">
                   <div className="text-4xl mb-2">🎉</div>
                   <h4 className="font-bold text-slate-800 text-sm">Kerja Bagus, {userName}!</h4>
