@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation"; // Menggunakan useParams agar lebih stabil
 import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
@@ -13,23 +13,28 @@ interface KamarData {
   url_gambar?: string;
 }
 
-export default function DetailKamarPage({ params }: { params: { id: string } }) {
+export default function DetailKamarPage() {
   const router = useRouter();
+  const params = useParams(); 
+  const kamarId = params.id as string; // Mengambil ID "A3T1acAOhrfEL5QCyiCh" dengan aman
+
   const [kamar, setKamar] = useState<KamarData | null>(null);
   const [loadingKamar, setLoadingKamar] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // 1. Ambil data spesifik kamar dari Firestore berdasarkan ID di URL
+  // 1. Ambil data kamar dari Firestore
   useEffect(() => {
+    if (!kamarId) return;
+
     const fetchKamarDetails = async () => {
       try {
-        const docRef = doc(db, "kamars", params.id);
+        const docRef = doc(db, "kamars", kamarId);
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
           setKamar(docSnap.data() as KamarData);
         } else {
-          alert("Kamar tidak ditemukan!");
+          alert("Kamar tidak ditemukan di database!");
           router.push("/");
         }
       } catch (error) {
@@ -40,12 +45,19 @@ export default function DetailKamarPage({ params }: { params: { id: string } }) 
     };
 
     fetchKamarDetails();
-  }, [params.id, router]);
+  }, [kamarId, router]);
 
-  // 2. Fungsi Ajukan Sewa
+  // 2. Fungsi saat tombol sewa diklik
   const handleAjukanSewa = async () => {
+    // Validasi status ketersediaan kamar
+    const statusBersih = kamar?.status?.trim().toLowerCase();
+    if (statusBersih !== "tersedia") {
+      alert(`Maaf, kamar ini saat ini tidak tersedia (Status: ${kamar?.status})`);
+      return;
+    }
+
+    // Validasi status login pengguna
     const user = auth.currentUser;
-    
     if (!user) {
       alert("Anda harus login terlebih dahulu untuk menyewa kamar ini.");
       router.push("/login");
@@ -56,7 +68,7 @@ export default function DetailKamarPage({ params }: { params: { id: string } }) 
 
     try {
       const dataPengajuan = {
-        kamarId: params.id,
+        kamarId: kamarId,
         nomorKamar: kamar?.nomor_kamar || "Tidak Diketahui",
         hargaKamar: kamar?.harga_bulanan || 0,
         userId: user.uid,
@@ -66,14 +78,13 @@ export default function DetailKamarPage({ params }: { params: { id: string } }) 
         tanggal_pengajuan: serverTimestamp(),
       };
 
-      // Menyimpan ke koleksi "sewa"
       await addDoc(collection(db, "sewa"), dataPengajuan);
 
       alert("Pengajuan sewa berhasil dikirim! Menunggu konfirmasi admin.");
       router.push("/dashboard");
     } catch (error: any) {
-      console.error("Detail Error Firebase:", error);
-      alert(`Gagal mengajukan sewa: ${error.message || "Periksa aturan Rules Firestore Anda"}`);
+      console.error("Error Firebase:", error);
+      alert(`Gagal mengajukan sewa: ${error.message || "Periksa kembali aturan Rules Firestore Anda"}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -87,11 +98,13 @@ export default function DetailKamarPage({ params }: { params: { id: string } }) 
     );
   }
 
+  // Cek apakah kamar memang tersedia
+  const isTersedia = kamar?.status?.trim().toLowerCase() === "tersedia";
+
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-12 font-sans">
       <div className="max-w-3xl mx-auto space-y-6">
         
-        {/* Tombol Kembali */}
         <button 
           onClick={() => router.back()} 
           className="text-sm font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-2"
@@ -99,10 +112,8 @@ export default function DetailKamarPage({ params }: { params: { id: string } }) 
           ← Kembali
         </button>
 
-        {/* Card Utama Detail Kamar */}
         <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 space-y-6">
           
-          {/* Gambar Jika Ada, atau Placeholder Grid */}
           {kamar?.url_gambar ? (
             <img 
               src={kamar.url_gambar} 
@@ -117,9 +128,8 @@ export default function DetailKamarPage({ params }: { params: { id: string } }) 
             </div>
           )}
 
-          {/* Info Utama */}
           <div className="border-b border-gray-100 pb-4">
-            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 capitalize">
+            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${isTersedia ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
               {kamar?.status}
             </span>
             <h1 className="text-3xl font-bold text-gray-900 mt-2">{kamar?.nomor_kamar}</h1>
@@ -128,7 +138,6 @@ export default function DetailKamarPage({ params }: { params: { id: string } }) 
             </p>
           </div>
 
-          {/* Fasilitas */}
           <div>
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Fasilitas Kamar</h3>
             <p className="text-gray-700 mt-2 leading-relaxed text-lg bg-gray-50 p-4 rounded-xl border border-gray-100">
@@ -136,14 +145,16 @@ export default function DetailKamarPage({ params }: { params: { id: string } }) 
             </p>
           </div>
 
-          {/* Tombol Aksi */}
+          {/* Tombol selalu aktif secara visual kecuali saat loading kirim data */}
           <button
             onClick={handleAjukanSewa}
-            disabled={isSubmitting || kamar?.status !== "tersedia"}
+            disabled={isSubmitting}
             className={`w-full py-4 px-6 rounded-xl font-bold text-white shadow-sm transition-all duration-200 text-center
-              ${isSubmitting || kamar?.status !== "tersedia"
-                ? "bg-gray-300 cursor-not-allowed shadow-none"
-                : "bg-blue-600 hover:bg-blue-700 active:scale-[0.99]"
+              ${isSubmitting 
+                ? "bg-gray-400 cursor-not-allowed shadow-none" 
+                : isTersedia 
+                ? "bg-blue-600 hover:bg-blue-700 active:scale-[0.99]" 
+                : "bg-amber-600 hover:bg-amber-700"
               }`}
           >
             {isSubmitting ? "Sedang Mengirim Pengajuan..." : "Ajukan Sewa Sekarang"}
