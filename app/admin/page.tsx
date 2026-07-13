@@ -8,6 +8,7 @@ import {
   query, 
   where, 
   getDocs, 
+  getDoc, // Tambahkan getDoc untuk mengambil data satuan kamar
   updateDoc, 
   doc, 
   addDoc, 
@@ -78,30 +79,40 @@ export default function AdminDashboardPage() {
     if (!confirm("Setujui pengajuan ini dan aktifkan akses penghuni?")) return;
 
     try {
-      // 1. Update status sewa menjadi disetujui
+      // 1. Ambil data kamar terlebih dahulu untuk mendapatkan harga aslinya
+      const kamarDoc = await getDoc(doc(db, "kamars", kamarId));
+      let hargaKamar = 1000000; // Angka cadangan jika data kamar tidak ketemu
+
+      if (kamarDoc.exists()) {
+        // PENTING: Pastikan nama field harga di Firestore Anda adalah 'harga'. 
+        // Jika nama kolomnya berbeda (misal: 'hargaPerBulan' atau 'tarif'), silakan ganti tulisan .harga di bawah ini.
+        hargaKamar = kamarDoc.data().harga || 1000000;
+      }
+
+      // 2. Update status sewa menjadi disetujui
       await updateDoc(doc(db, "sewa", sewaId), {
         status: "disetujui"
       });
 
-      // 2. UPDATE STATUS KAMAR DI FIRESTORE: Ubah dari 'tersedia' menjadi 'terisi'
+      // 3. Update status kamar menjadi 'terisi' agar tidak muncul di akun user lain
       await updateDoc(doc(db, "kamars", kamarId), {
         status: "terisi"
       });
 
-      // 3. Otomatis buatkan data tagihan pertama untuk user tersebut
+      // 4. Otomatis buatkan data tagihan sesuai harga asli kamar tersebut
       await addDoc(collection(db, "tagihan"), {
         userId: userId,
         kamarId: kamarId,
         bulan: new Date().toLocaleDateString('id-ID', { month: 'long' }),
         tahun: new Date().getFullYear(),
-        jumlah: 1000000, // Nominal bawaan, silakan sesuaikan dengan tarif kost Anda
+        jumlah: hargaKamar, // SEKARANG SUDAH DINAMIS OTOMATIS IKUT HARGA KAMAR
         status: "belum_bayar",
         tanggalJatuhTempo: new Date(new Date().setDate(new Date().getDate() + 7)), // Batas waktu bayar 7 hari ke depan
         dibuatOleh: "admin",
         createdAt: serverTimestamp()
       });
 
-      alert("Pengajuan berhasil disetujui, status kamar telah diperbarui menjadi 'terisi', dan tagihan perdana telah diterbitkan!");
+      alert("Pengajuan berhasil disetujui, status kamar diubah menjadi 'terisi', dan tagihan sesuai tarif kamar telah diterbitkan!");
       fetchData(); // Segarkan list antrean
     } catch (error) {
       console.error("Gagal memproses persetujuan sewa:", error);
