@@ -83,7 +83,12 @@ export default function AdminDashboardPage() {
         status: "disetujui"
       });
 
-      // 2. Otomatis buatkan data tagihan pertama untuk user tersebut
+      // 2. UPDATE STATUS KAMAR DI FIRESTORE: Ubah dari 'tersedia' menjadi 'terisi'
+      await updateDoc(doc(db, "kamars", kamarId), {
+        status: "terisi"
+      });
+
+      // 3. Otomatis buatkan data tagihan pertama untuk user tersebut
       await addDoc(collection(db, "tagihan"), {
         userId: userId,
         kamarId: kamarId,
@@ -96,7 +101,7 @@ export default function AdminDashboardPage() {
         createdAt: serverTimestamp()
       });
 
-      alert("Pengajuan berhasil disetujui dan tagihan perdana telah diterbitkan!");
+      alert("Pengajuan berhasil disetujui, status kamar telah diperbarui menjadi 'terisi', dan tagihan perdana telah diterbitkan!");
       fetchData(); // Segarkan list antrean
     } catch (error) {
       console.error("Gagal memproses persetujuan sewa:", error);
