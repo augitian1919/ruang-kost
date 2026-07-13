@@ -25,10 +25,14 @@ interface KamarData {
 }
 
 interface SewaData {
+  id?: string;
   kamarId: string;
-  kamarRef: string;
-  tanggalMulai: Timestamp;
-  tanggalSelesai: Timestamp;
+  kamarRef?: string;
+  nomorKamar?: string;
+  hargaKamar?: number;
+  tanggalMulai?: Timestamp;
+  tanggalSelesai?: Timestamp;
+  tanggal_pengajuan?: Timestamp;
   status: string;
   userId: string;
 }
@@ -108,61 +112,75 @@ export default function CustomerDashboardPage() {
       setUserId(user.uid);
 
       try {
-        // 1. Cek apakah user punya sewa aktif
-        const sewaRef = doc(db, "sewa", user.uid);
-        const unsubscribeSewa = onSnapshot(sewaRef, async (sewaSnap) => {
-          if (sewaSnap.exists()) {
-            const sewa = sewaSnap.data() as SewaData;
+        // 1. Cari data pengajuan sewa berdasarkan userId pelanggan di koleksi sewa
+        const sewaQuery = query(
+          collection(db, "sewa"),
+          where("userId", "==", user.uid)
+        );
+
+        const unsubscribeSewa = onSnapshot(sewaQuery, async (querySnapshot) => {
+          if (!querySnapshot.empty) {
+            const sewaDoc = querySnapshot.docs[0];
+            const sewa = { id: sewaDoc.id, ...sewaDoc.data() } as SewaData;
             setSewaData(sewa);
 
-            // Ambil data kamar yang disewa
-            if (sewa.kamarRef) {
-              const kamarSnap = await getDoc(doc(db, "kamars", sewa.kamarRef));
-              if (kamarSnap.exists()) {
-                setKamarSaya({
-                  id: kamarSnap.id,
-                  ...kamarSnap.data()
-                } as KamarData);
+            // Hanya ambil data kamar lengkap & tagihan jika status sewa sudah disetujui (aktif)
+            if (sewa.status === "disetujui") {
+              const kamarIdToFetch = sewa.kamarId || sewa.kamarRef;
+              if (kamarIdToFetch) {
+                const kamarSnap = await getDoc(doc(db, "kamars", kamarIdToFetch));
+                if (kamarSnap.exists()) {
+                  setKamarSaya({
+                    id: kamarSnap.id,
+                    ...kamarSnap.data()
+                  } as KamarData);
+                }
               }
-            }
 
-            // Ambil tagihan aktif (bulan ini yang belum bayar)
-            const tagihanQuery = query(
-              collection(db, "tagihan"),
-              where("userId", "==", user.uid),
-              where("status", "==", "belum_bayar")
-            );
-            const tagihanSnap = await getDocs(tagihanQuery);
-            if (!tagihanSnap.empty) {
-              setTagihanAktif(tagihanSnap.docs[0].data() as TagihanData);
+              // Ambil tagihan aktif (bulan ini yang belum bayar)
+              const tagihanQuery = query(
+                collection(db, "tagihan"),
+                where("userId", "==", user.uid),
+                where("status", "==", "belum_bayar")
+              );
+              const tagihanSnap = await getDocs(tagihanQuery);
+              if (!tagihanSnap.empty) {
+                setTagihanAktif(tagihanSnap.docs[0].data() as TagihanData);
+              } else {
+                setTagihanAktif(null);
+              }
+
+              // Ambil riwayat tagihan (3 terakhir yang sudah lunas)
+              const riwayatQuery = query(
+                collection(db, "tagihan"),
+                where("userId", "==", user.uid),
+                where("status", "==", "lunas")
+              );
+              const riwayatSnap = await getDocs(riwayatQuery);
+              const riwayat = riwayatSnap.docs
+                .map(doc => {
+                  const data = doc.data() as TagihanData;
+                  return {
+                    ...data,
+                    _tanggalBayarMs: data.tanggalBayar?.toMillis() || 0
+                  };
+                })
+                .sort((a, b) => (b._tanggalBayarMs || 0) - (a._tanggalBayarMs || 0))
+                .slice(0, 3);
+              setRiwayatTagihan(riwayat);
             } else {
+              // Jika status masih 'menunggu_konfirmasi', reset data kamar & tagihan agar tidak bentrok
+              setKamarSaya(null);
               setTagihanAktif(null);
+              setRiwayatTagihan([]);
             }
-
-            // Ambil riwayat tagihan (3 terakhir yang sudah lunas)
-            const riwayatQuery = query(
-              collection(db, "tagihan"),
-              where("userId", "==", user.uid),
-              where("status", "==", "lunas")
-            );
-            const riwayatSnap = await getDocs(riwayatQuery);
-            const riwayat = riwayatSnap.docs
-              .map(doc => {
-                const data = doc.data() as TagihanData;
-                return {
-                  ...data,
-                  _tanggalBayarMs: data.tanggalBayar?.toMillis() || 0
-                };
-              })
-              .sort((a, b) => (b._tanggalBayarMs || 0) - (a._tanggalBayarMs || 0))
-              .slice(0, 3);
-            setRiwayatTagihan(riwayat);
 
           } else {
-            // User belum punya sewa → ambil kamar tersedia
+            // User belum punya dokumen sewa → ambil kamar tersedia untuk di-preview
             setSewaData(null);
             setKamarSaya(null);
             setTagihanAktif(null);
+            setRiwayatTagihan([]);
 
             const kamarQuery = query(
               collection(db, "kamars"),
@@ -225,7 +243,7 @@ export default function CustomerDashboardPage() {
   }
 
   const sisaHari = getSisaHari(sewaData?.tanggalSelesai);
-  const hasRoom = !!kamarSaya;
+  const hasRoom = !!kamarSaya && sewaData?.status === "disetujui";
 
   // ============ RENDER: MAIN ============
   return (
@@ -241,7 +259,9 @@ export default function CustomerDashboardPage() {
             <p className="text-slate-500 mt-2 text-base">
               {hasRoom 
                 ? `Anda menempati kamar ${kamarSaya?.nomor_kamar}` 
-                : "Selamat datang di RuangKost"}
+                : sewaData?.status === "menunggu_konfirmasi"
+                  ? `Pengajuan sewa kamar ${sewaData?.nomorKamar || ""} sedang diproses`
+                  : "Selamat datang di RuangKost"}
             </p>
           </div>
           <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-full shadow-sm border border-slate-100">
@@ -266,12 +286,18 @@ export default function CustomerDashboardPage() {
               <span className="text-sm font-medium text-slate-500">Status Kamar</span>
             </div>
             <div className="text-2xl font-bold text-slate-800">
-              {hasRoom ? kamarSaya.nomor_kamar : "Belum Aktif"}
+              {hasRoom 
+                ? kamarSaya.nomor_kamar 
+                : sewaData?.status === "menunggu_konfirmasi"
+                  ? sewaData?.nomorKamar || "Menunggu"
+                  : "Belum Aktif"}
             </div>
             <div className="text-xs text-slate-400 mt-1">
               {hasRoom 
                 ? `${kamarSaya?.fasilitas?.split(',')[0] || 'Kamar'}` 
-                : "Anda belum memiliki kamar"}
+                : sewaData?.status === "menunggu_konfirmasi"
+                  ? "Menunggu Konfirmasi Admin"
+                  : "Anda belum memiliki kamar"}
             </div>
           </div>
 
@@ -283,15 +309,19 @@ export default function CustomerDashboardPage() {
               </div>
               <span className="text-sm font-medium text-slate-500">Tagihan {getNamaBulan()}</span>
             </div>
-            <div className={`text-2xl font-bold ${tagihanAktif ? 'text-red-500' : 'text-emerald-600'}`}>
-              {tagihanAktif 
-                ? formatRupiah(tagihanAktif.jumlah) 
-                : "Lunas"}
+            <div className={`text-2xl font-bold ${sewaData?.status === "menunggu_konfirmasi" ? "text-amber-500" : tagihanAktif ? 'text-red-500' : 'text-emerald-600'}`}>
+              {sewaData?.status === "menunggu_konfirmasi"
+                ? "Pending"
+                : tagihanAktif 
+                  ? formatRupiah(tagihanAktif.jumlah) 
+                  : "Lunas"}
             </div>
             <div className="text-xs text-slate-400 mt-1">
-              {tagihanAktif 
-                ? `Jatuh tempo: ${formatTanggal(tagihanAktif.tanggalJatuhTempo)}` 
-                : "Tidak ada tagihan tertunda"}
+              {sewaData?.status === "menunggu_konfirmasi"
+                ? "Menunggu persetujuan sewa"
+                : tagihanAktif 
+                  ? `Jatuh tempo: ${formatTanggal(tagihanAktif.tanggalJatuhTempo)}` 
+                  : "Tidak ada tagihan tertunda"}
             </div>
           </div>
 
@@ -304,12 +334,18 @@ export default function CustomerDashboardPage() {
               <span className="text-sm font-medium text-slate-500">Masa Sewa</span>
             </div>
             <div className="text-2xl font-bold text-amber-500">
-              {sisaHari !== null ? `${sisaHari} hari` : "-"}
+              {hasRoom && sisaHari !== null 
+                ? `${sisaHari} hari` 
+                : sewaData?.status === "menunggu_konfirmasi"
+                  ? "Pending"
+                  : "-"}
             </div>
             <div className="text-xs text-slate-400 mt-1">
-              {sewaData?.tanggalSelesai 
+              {hasRoom && sewaData?.tanggalSelesai 
                 ? `Berakhir: ${formatTanggal(sewaData.tanggalSelesai)}` 
-                : "Belum ada data sewa"}
+                : sewaData?.status === "menunggu_konfirmasi"
+                  ? "Menunggu review berkas"
+                  : "Belum ada data sewa"}
             </div>
           </div>
         </div>
@@ -330,7 +366,7 @@ export default function CustomerDashboardPage() {
 
               {hasRoom && kamarSaya ? (
                 <div className="space-y-4">
-                  {/* Detail Kamar */}
+                  {/* Detail Kamar Aktif */}
                   <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
                     <div className="flex justify-between items-start mb-3">
                       <div>
@@ -356,6 +392,32 @@ export default function CustomerDashboardPage() {
                   <Link href="/kamar">
                     <button className="w-full py-3 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2">
                       <span>📋</span> Lihat Detail Kamar
+                    </button>
+                  </Link>
+                </div>
+              ) : sewaData?.status === "menunggu_konfirmasi" ? (
+                /* Detail Kamar Saat Menunggu Konfirmasi */
+                <div className="space-y-4">
+                  <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-xl border border-amber-100">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <div className="text-2xl font-bold text-amber-700">{sewaData.nomorKamar}</div>
+                        <div className="text-sm text-amber-600">{sewaData.hargaKamar ? formatRupiah(sewaData.hargaKamar) : ""}/bulan</div>
+                      </div>
+                      <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold animate-pulse">
+                        Menunggu Konfirmasi
+                      </span>
+                    </div>
+                    <div className="border-t border-amber-200/60 pt-3">
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Pengajuan sewa Anda dikirim pada <strong>{formatTanggal(sewaData.tanggal_pengajuan)}</strong> dan sedang diperiksa pemilik kost. Fitur tagihan penuh akan terbuka otomatis setelah disetujui.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Link href={`/kamar/${sewaData.kamarId}`}>
+                    <button className="w-full py-3 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                      <span>📋</span> Detail Kamar Yang Diajukan
                     </button>
                   </Link>
                 </div>
@@ -435,15 +497,21 @@ export default function CustomerDashboardPage() {
                   <p className="text-slate-500 text-sm leading-relaxed mb-6">
                     {hasRoom 
                       ? "Semua tagihan sudah lunas. Terima kasih atas pembayaran tepat waktunya!" 
-                      : "Tidak ada tagihan yang tertunda saat ini."}
+                      : sewaData?.status === "menunggu_konfirmasi"
+                        ? "Tagihan bulanan belum diterbitkan. Menunggu pengajuan sewa kamar disetujui oleh admin kost."
+                        : "Tidak ada tagihan yang tertunda saat ini."}
                   </p>
                   <div className="flex items-center gap-3 px-5 py-4 bg-emerald-50 rounded-xl border border-emerald-200">
                     <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-xl">
-                      ✅
+                      {sewaData?.status === "menunggu_konfirmasi" ? "⏳" : "✅"}
                     </div>
                     <div>
-                      <div className="text-emerald-700 font-semibold text-sm">Status: Lunas & Aktif</div>
-                      <div className="text-emerald-500 text-xs">Tidak ada tagihan yang perlu dibayar</div>
+                      <div className="text-emerald-700 font-semibold text-sm">
+                        {sewaData?.status === "menunggu_konfirmasi" ? "Status: Menunggu Antrean" : "Status: Lunas & Aktif"}
+                      </div>
+                      <div className="text-emerald-500 text-xs">
+                        {sewaData?.status === "menunggu_konfirmasi" ? "Tagihan baru akan muncul di sini" : "Tidak ada tagihan yang perlu dibayar"}
+                      </div>
                     </div>
                   </div>
                 </>
