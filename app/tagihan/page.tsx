@@ -262,13 +262,13 @@ export default function TagihanPage() {
               <div className="space-y-3 border-t border-white/20 pt-3 text-sm">
                 <div>
                   <div className="text-xs text-blue-200">Bank Transfer</div>
-                  <div className="font-bold tracking-wide">Bank BCA — 8720xxxxxx</div>
-                  <div className="text-xs text-blue-100/80">a.n. Pemilik RuangKost</div>
+                  <div className="font-bold tracking-wide">Bank BCA — 4561258605</div>
+                  <div className="text-xs text-blue-100/80">a.n. Augitian Alba Setiaji</div>
                 </div>
                 <div>
                   <div className="text-xs text-blue-200">E-Wallet</div>
-                  <div className="font-bold tracking-wide">OVO / Dana — 0812xxxxxxxx</div>
-                  <div className="text-xs text-blue-100/80">a.n. Manajemen Kost</div>
+                  <div className="font-bold tracking-wide">OVO / Dana — 085802090008</div>
+                  <div className="text-xs text-blue-100/80">a.n. Augitian Alba Setiaji</div>
                 </div>
               </div>
             </div>
