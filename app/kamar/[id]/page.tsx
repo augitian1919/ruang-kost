@@ -280,10 +280,6 @@ export default function DetailKamarPage() {
                 <span>📋</span> Ajukan Sewa Sekarang
               </button>
 
-              <button className="w-full py-3 border-2 border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2">
-                <span>💬</span> Tanya Admin
-              </button>
-
               <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
                 <div className="flex items-start gap-2">
                   <span className="text-blue-500 text-lg">💡</span>
