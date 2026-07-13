@@ -12,7 +12,7 @@ import {
   getDocs,
   Timestamp 
 } from "firebase/firestore";
-import { auth, db } from "../../lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import Link from "next/link";
 
 // ============ TYPES ============
